@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Museo D'Amore - Um lugar especial para guardar nossas memórias.">
     <title>Museo D'Amore - Peleco e Melequinha</title>
     
+    <!-- Favicon (Coração) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -32,12 +36,14 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            background-color: #f8fafc;
         }
         
         /* Ocultar barra de rolagem */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Animações */
         @keyframes float { 0% { transform: translateY(0px) rotate(0deg); opacity: 0; } 50% { opacity: 0.5; } 100% { transform: translateY(-100px) rotate(20deg); opacity: 0; } }
         @keyframes swim { 0% { transform: translateX(0) rotate(0deg); opacity: 0; } 20% { opacity: 0.4; } 80% { opacity: 0.4; } 100% { transform: translateX(120vw) rotate(10deg); opacity: 0; } }
         @keyframes swim-across { 0% { transform: translateX(120vw); } 100% { transform: translateX(-120vw); } }
@@ -60,6 +66,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
+        // Removido 'PawPrint' da importação para evitar o erro, pois estamos usando o CustomPawPrint
         import { Moon, Heart, Trash2, Edit2, X, Image as ImageIcon, Save, StickyNote, Mail, Camera, Anchor, Leaf, Sparkles, Fish, Calendar, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 
         const fonts = {
@@ -69,7 +76,7 @@
             romantic: { fontFamily: '"Parisienne", cursive' },
         };
 
-        // --- Componente Customizado Patinha (Substituindo PawPrint) ---
+        // --- Componente Customizado Patinha (Substituindo PawPrint da biblioteca para evitar erros de versão) ---
         const CustomPawPrint = ({ className, size = 24 }) => (
             <svg 
                 xmlns="http://www.w3.org/2000/svg" 
@@ -729,7 +736,7 @@
                         </div>
                         <footer className="mt-20 md:mt-32 text-center text-indigo-400 pb-8 px-4" style={fonts.hand}>
                             <p>Feito com ❤️ para Lara Isabely</p>
-                            <p className="text-xs mt-2 opacity-50">Até o próximo dia 02 <3.</p>
+                            <p className="text-xs mt-2 opacity-50">Sempre será dia 02.</p>
                         </footer>
                     </section>
 
