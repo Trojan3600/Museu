@@ -15,13 +15,16 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Patrick+Hand&family=Dancing+Script:wght@600&family=Parisienne&display=swap" rel="stylesheet">
 
-    <!-- Import Map para React e Lucide -->
+    <!-- Import Map para React, Lucide e Firebase -->
     <script type="importmap">
     {
       "imports": {
         "react": "https://esm.sh/react@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.344.0"
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
       }
     }
     </script>
@@ -50,6 +53,7 @@
         @keyframes peek-up { 0%, 100% { transform: translateY(100%); } 50% { transform: translateY(0); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         
         .animate-float { animation: float linear infinite; }
         .animate-swim { animation: swim linear infinite; }
@@ -58,6 +62,7 @@
         .animate-fade-in-up { animation: fadeInUp 0.8s ease-out; }
         .animate-bounce-slow { animation: bounce 3s infinite; }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .animate-spin-slow { animation: spin-slow 3s linear infinite; }
     </style>
 </head>
 <body>
@@ -66,8 +71,41 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
-        // Removido 'PawPrint' da importação para evitar o erro, pois estamos usando o CustomPawPrint
-        import { Moon, Heart, Trash2, Edit2, X, Image as ImageIcon, Save, StickyNote, Mail, Camera, Anchor, Leaf, Sparkles, Fish, Calendar, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
+        // Ícones Lucide
+        import { Moon, Heart, Trash2, Edit2, X, Image as ImageIcon, Save, StickyNote, Mail, Camera, Anchor, Leaf, Sparkles, Fish, Calendar, ChevronLeft, ChevronRight, PlusCircle, Loader2 } from 'lucide-react';
+        
+        // Firebase Imports
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from 'firebase/firestore';
+
+        // =================================================================================
+        // ÁREA DE CONFIGURAÇÃO (JÁ PREENCHIDA COM SEUS DADOS)
+        // =================================================================================
+        
+        const userConfig = {
+            apiKey: "AIzaSyCPM_OEd9bG-XWcYZoMbkesqMUNe48L1pI",
+            authDomain: "museo-d-amore.firebaseapp.com",
+            projectId: "museo-d-amore",
+            storageBucket: "museo-d-amore.firebasestorage.app",
+            messagingSenderId: "780597043804",
+            appId: "1:780597043804:web:9907cc66882df52f457c99"
+        };
+
+        // =================================================================================
+
+        // Inicialização do Firebase
+        // Se estiver no preview do Canvas, usa a config interna. Se estiver no GitHub/Local, usa a userConfig.
+        const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+            ? JSON.parse(__firebase_config) 
+            : userConfig;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // ID do App para separar dados se necessário (Padrão: 'museo-amore')
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'museo-amore-app';
 
         const fonts = {
             hand: { fontFamily: '"Patrick Hand", cursive' },
@@ -76,7 +114,32 @@
             romantic: { fontFamily: '"Parisienne", cursive' },
         };
 
-        // --- Componente Customizado Patinha (Substituindo PawPrint da biblioteca para evitar erros de versão) ---
+        // --- Função Auxiliar para Comprimir Imagem ---
+        const compressImage = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; // Reduz resolução máxima para não pesar no banco
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        // Retorna base64 comprimido (JPEG qualidade 0.7)
+                        resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+                    };
+                };
+            });
+        };
+
+        // --- Componente Customizado Patinha ---
         const CustomPawPrint = ({ className, size = 24 }) => (
             <svg 
                 xmlns="http://www.w3.org/2000/svg" 
@@ -149,7 +212,7 @@
             );
         };
 
-        // --- Mini Animais Fofinhos (SVG Components) ---
+        // --- Avatares ---
         const MiniJellyfish = ({ className }) => (
             <svg viewBox="0 0 100 100" className={`w-12 h-12 md:w-16 md:h-16 text-white drop-shadow-lg ${className}`}>
                 <path d="M20,45 C20,15 80,15 80,45 C80,60 70,65 50,65 C30,65 20,60 20,45 Z" fill="currentColor" opacity="0.9" />
@@ -246,7 +309,6 @@
             );
         };
 
-        // --- Elementos de Fundo Animados ---
         const BackgroundElements = () => (
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {[...Array(15)].map((_, i) => {
@@ -339,7 +401,7 @@
             );
         };
 
-        const MemoryModal = ({ isOpen, onClose, onSave, editingItem }) => {
+        const MemoryModal = ({ isOpen, onClose, onSave, editingItem, isSaving }) => {
             const [formData, setFormData] = useState({ title: '', date: '', description: '', image: '', category: 'past', sticker: '💙', type: 'photo', color: '#fef3c7', author: 'Lara' });
 
             useEffect(() => {
@@ -348,7 +410,16 @@
             }, [editingItem, isOpen]);
 
             if (!isOpen) return null;
-            const handleImageUpload = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setFormData(prev => ({ ...prev, image: reader.result })); reader.readAsDataURL(file); } };
+            
+            const handleImageUpload = (e) => { 
+                const file = e.target.files[0]; 
+                if (file) { 
+                    // Usar compressão
+                    compressImage(file).then(base64 => {
+                        setFormData(prev => ({ ...prev, image: base64 }));
+                    });
+                } 
+            };
             const colors = ['#fef3c7', '#dcfce7', '#dbeafe', '#fce7f3', '#e0e7ff'];
 
             return (
@@ -375,7 +446,9 @@
                         {formData.type === 'postit' && (<div><label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Cor do Post-it</label><div className="flex gap-3">{colors.map(c => (<button key={c} onClick={() => setFormData(prev => ({...prev, color: c}))} className={`w-8 h-8 rounded-full shadow-sm border-2 ${formData.color === c ? 'border-slate-500 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }}/>))}</div></div>)}
                         <div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{formData.type === 'letter' ? 'Conteúdo da Carta' : 'Descrição / Legenda'}</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className={`w-full border rounded-lg p-3 outline-none focus:border-indigo-400 bg-slate-50 ${formData.type === 'letter' ? 'h-40 font-[Dancing Script]' : 'h-24'}`} placeholder="Escreva com o coração..."/></div>
                         <div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Selo Fofinho</label><div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">{['🐙','🦊','⭐','🌙','☀️','🌊','🍂','❄️','🌸','💌','💖'].map(s => (<button key={s} onClick={() => setFormData(prev => ({...prev, sticker: s}))} className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 ${formData.sticker === s ? 'bg-indigo-100' : ''}`}>{s}</button>))}</div></div>
-                        <button onClick={() => onSave(formData)} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 mt-4"><Save size={18} fill="white" /> Salvar</button>
+                        <button onClick={() => onSave(formData)} disabled={isSaving} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 mt-4 disabled:opacity-50">
+                            {isSaving ? <Loader2 className="animate-spin" /> : <><Save size={18} fill="white" /> Salvar</>}
+                        </button>
                     </div>
                 </div>
                 </div>
@@ -397,20 +470,18 @@
             const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
+                    compressImage(file).then(base64 => {
                         const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-02`;
                         onAddPhoto({
                             title: `Memória de ${monthNames[month]}`,
                             date: formattedDate,
-                            image: reader.result,
+                            image: base64,
                             description: '',
                             category: 'present',
                             type: 'photo',
                             sticker: '📸'
                         });
-                    };
-                    reader.readAsDataURL(file);
+                    });
                 }
             };
 
@@ -597,27 +668,116 @@
             const [memories, setMemories] = useState([]);
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [editingItem, setEditingItem] = useState(null);
+            const [user, setUser] = useState(null);
+            const [isSaving, setIsSaving] = useState(false);
 
+            // 1. Autenticação Firebase Anônima
             useEffect(() => {
-                const saved = localStorage.getItem('museum_v3_memories');
-                if (saved) {
-                    setMemories(JSON.parse(saved));
-                } else {
-                    setMemories([
-                        { id: 1, type: 'letter', title: 'A Criação do Museu', date: '2023-08-02', description: "Oii meu bemm!!, criei este little museu só nosso para guardarmos cada momento incrível da nossa vida juntos. Aqui, cada dia 02 será eterno, e cada sorriso nosso ficará registrado para sempre", category: 'past', sticker: '💌', author: 'Peleco' },
-                    ]);
-                }
+                const initAuth = async () => {
+                    // Tenta usar o token do ambiente se disponível (para preview no Canvas)
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        // Fallback para auth anônimo (funciona se ativado no console)
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
             }, []);
 
-            useEffect(() => { if (memories.length > 0) localStorage.setItem('museum_v3_memories', JSON.stringify(memories)); }, [memories]);
-            const handleSave = (data) => { 
-                if (editingItem) setMemories(prev => prev.map(m => m.id === editingItem.id ? { ...data, id: m.id } : m)); 
-                else setMemories(prev => [...prev, { ...data, id: Date.now() }]); 
-                setIsModalOpen(false); 
-                setEditingItem(null); 
+            // 2. Carregar Memórias do Firestore
+            useEffect(() => {
+                if (!user) return;
+
+                // Define a coleção correta baseada no ambiente
+                // Se estiver no Canvas, usa o caminho isolado. Se estiver no seu GitHub, usa 'memories'.
+                let memoriesRef;
+                if (typeof __app_id !== 'undefined') {
+                     memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
+                } else {
+                     // Caminho de produção para o seu projeto pessoal
+                     memoriesRef = collection(db, 'memories');
+                }
+                
+                // onSnapshot para tempo real
+                const unsubscribe = onSnapshot(memoriesRef, (snapshot) => {
+                    const loadedMemories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    if (loadedMemories.length === 0) {
+                        // Dados iniciais se vazio
+                        setMemories([{ id: 'init', type: 'letter', title: 'A Criação do Museu', date: '2023-08-02', description: "Oii meu bemm!!, criei este little museu só nosso para guardarmos cada momento incrível da nossa vida juntos. Aqui, cada dia 02 será eterno, e cada sorriso nosso ficará registrado para sempre", category: 'past', sticker: '💌', author: 'Peleco' }]);
+                    } else {
+                        setMemories(loadedMemories);
+                    }
+                });
+
+                return () => unsubscribe();
+            }, [user]);
+
+            // Salvar (Add ou Update)
+            const handleSave = async (data) => {
+                if (!user) return;
+                setIsSaving(true);
+                try {
+                    let memoriesRef;
+                    if (typeof __app_id !== 'undefined') {
+                        memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
+                    } else {
+                        memoriesRef = collection(db, 'memories');
+                    }
+                    
+                    if (editingItem && editingItem.id !== 'init') {
+                        // Update
+                        await updateDoc(doc(memoriesRef, editingItem.id), data);
+                    } else {
+                        // Create
+                        await addDoc(memoriesRef, data);
+                    }
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                } catch (error) {
+                    console.error("Erro ao salvar:", error);
+                    alert("Erro ao salvar. Verifique se a autenticação Anônima está ativada no Firebase.");
+                } finally {
+                    setIsSaving(false);
+                }
             };
-            const handleAddFromAlbum = (newMemory) => { setMemories(prev => [...prev, { ...newMemory, id: Date.now() }]); };
-            const handleDelete = (id) => { if (window.confirm("Remover esta lembrança?")) setMemories(prev => prev.filter(m => m.id !== id)); };
+
+            const handleAddFromAlbum = async (newMemory) => {
+                if (!user) return;
+                try {
+                    let memoriesRef;
+                    if (typeof __app_id !== 'undefined') {
+                        memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
+                    } else {
+                        memoriesRef = collection(db, 'memories');
+                    }
+                    await addDoc(memoriesRef, newMemory);
+                } catch (e) {
+                    console.error("Erro upload album", e);
+                    alert("Erro ao salvar foto.");
+                }
+            };
+
+            const handleDelete = async (id) => {
+                if (!user) return;
+                if (window.confirm("Remover esta lembrança?")) {
+                    if (id === 'init') return; 
+                    try {
+                        let memoriesRef;
+                        if (typeof __app_id !== 'undefined') {
+                            memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
+                        } else {
+                            memoriesRef = collection(db, 'memories');
+                        }
+                        await deleteDoc(doc(memoriesRef, id));
+                    } catch (e) {
+                        console.error("Erro ao deletar", e);
+                    }
+                }
+            };
             
             const past = memories.filter(m => m.category === 'past');
             const future = memories.filter(m => m.category === 'future');
@@ -720,7 +880,7 @@
                                 <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" fill="#1e1b4b" opacity="0.5"></path>
                                 <path d="M0,120 L0,100 Q150,150 300,100 T600,100 T900,100 T1200,80 L1200,120 Z" fill="#1e1b4b"></path>
                             </svg>
-                            <div className="absolute bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 animate-bounce-slow" style={{animationDelay: '2s'}}><MiniJellyfish className="text-indigo-200 drop-shadow-[0_0_15px_rgba(199,210,254,0.5)] opacity-90" /></div>
+                            <div className="absolute bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 animate-bounce-slow"><MiniJellyfish className="text-indigo-200 drop-shadow-[0_0_15px_rgba(199,210,254,0.5)] opacity-90" /></div>
                         </div>
                     </section>
 
@@ -736,11 +896,11 @@
                         </div>
                         <footer className="mt-20 md:mt-32 text-center text-indigo-400 pb-8 px-4" style={fonts.hand}>
                             <p>Feito com ❤️ para Lara Isabely</p>
-                            <p className="text-xs mt-2 opacity-50">Sempre será dia 02.</p>
+                            <p className="text-xs mt-2 opacity-50">Até o próximo dia 02 meu bem!.</p>
                         </footer>
                     </section>
 
-                    <MemoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} editingItem={editingItem} />
+                    <MemoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} editingItem={editingItem} isSaving={isSaving} />
                 </div>
             );
         }
