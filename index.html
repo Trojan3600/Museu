@@ -6,7 +6,7 @@
     <meta name="description" content="Museo D'Amore - Um lugar especial para guardar nossas memórias.">
     <title>Museo D'Amore - Peleco e Melequinha</title>
     
-    <!-- Favicon (Coração) -->
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
 
     <!-- Tailwind CSS -->
@@ -15,7 +15,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Patrick+Hand&family=Dancing+Script:wght@600&family=Parisienne&display=swap" rel="stylesheet">
 
-    <!-- Import Map para React, Lucide e Firebase -->
+    <!-- Import Map -->
     <script type="importmap">
     {
       "imports": {
@@ -29,24 +29,13 @@
     }
     </script>
 
-    <!-- Babel para JSX -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* Estilos Globais e Animações Personalizadas */
-        body {
-            font-family: 'Patrick Hand', cursive;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            background-color: #f8fafc;
-        }
-        
-        /* Ocultar barra de rolagem */
+        body { font-family: 'Patrick Hand', cursive; margin: 0; padding: 0; overflow-x: hidden; background-color: #f8fafc; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Animações */
         @keyframes float { 0% { transform: translateY(0px) rotate(0deg); opacity: 0; } 50% { opacity: 0.5; } 100% { transform: translateY(-100px) rotate(20deg); opacity: 0; } }
         @keyframes swim { 0% { transform: translateX(0) rotate(0deg); opacity: 0; } 20% { opacity: 0.4; } 80% { opacity: 0.4; } 100% { transform: translateX(120vw) rotate(10deg); opacity: 0; } }
         @keyframes swim-across { 0% { transform: translateX(120vw); } 100% { transform: translateX(-120vw); } }
@@ -54,7 +43,6 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
         .animate-float { animation: float linear infinite; }
         .animate-swim { animation: swim linear infinite; }
         .animate-swim-across { animation: swim-across linear infinite; }
@@ -71,18 +59,14 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
-        // Ícones Lucide
         import { Moon, Heart, Trash2, Edit2, X, Image as ImageIcon, Save, StickyNote, Mail, Camera, Anchor, Leaf, Sparkles, Fish, Calendar, ChevronLeft, ChevronRight, PlusCircle, Loader2 } from 'lucide-react';
         
         // Firebase Imports
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
         import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 
-        // =================================================================================
-        // ÁREA DE CONFIGURAÇÃO (JÁ PREENCHIDA COM SEUS DADOS)
-        // =================================================================================
-        
+        // --- SUAS CHAVES DO FIREBASE ---
         const userConfig = {
             apiKey: "AIzaSyCPM_OEd9bG-XWcYZoMbkesqMUNe48L1pI",
             authDomain: "museo-d-amore.firebaseapp.com",
@@ -92,20 +76,9 @@
             appId: "1:780597043804:web:9907cc66882df52f457c99"
         };
 
-        // =================================================================================
-
-        // Inicialização do Firebase
-        // Se estiver no preview do Canvas, usa a config interna. Se estiver no GitHub/Local, usa a userConfig.
-        const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
-            ? JSON.parse(__firebase_config) 
-            : userConfig;
-
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(userConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // ID do App para separar dados se necessário (Padrão: 'museo-amore')
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'museo-amore-app';
 
         const fonts = {
             hand: { fontFamily: '"Patrick Hand", cursive' },
@@ -114,7 +87,7 @@
             romantic: { fontFamily: '"Parisienne", cursive' },
         };
 
-        // --- Função Auxiliar para Comprimir Imagem ---
+        // --- COMPRESSÃO DE IMAGEM MAIS FORTE ---
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -124,7 +97,8 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800; // Reduz resolução máxima para não pesar no banco
+                        // Reduzido para 600px para garantir que fique < 1MB
+                        const MAX_WIDTH = 600; 
                         const scaleSize = MAX_WIDTH / img.width;
                         canvas.width = MAX_WIDTH;
                         canvas.height = img.height * scaleSize;
@@ -132,27 +106,15 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         
-                        // Retorna base64 comprimido (JPEG qualidade 0.7)
-                        resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+                        // Qualidade 0.5 (50%)
+                        resolve(canvas.toDataURL('image/jpeg', 0.5)); 
                     };
                 };
             });
         };
 
-        // --- Componente Customizado Patinha ---
         const CustomPawPrint = ({ className, size = 24 }) => (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width={size} 
-                height={size} 
-                viewBox="0 0 24 24" 
-                fill="currentColor" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className={className}
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="16.5" r="4.5" />
                 <circle cx="4.5" cy="10.5" r="2.5" />
                 <circle cx="9.5" cy="7.5" r="2.5" />
@@ -161,10 +123,8 @@
             </svg>
         );
 
-        // --- Componente do Temporizador (Dias no Coração) ---
         const LoveTimer = () => {
             const [days, setDays] = useState(0);
-
             useEffect(() => {
                 const startDate = new Date('2023-08-02T00:00:00');
                 const updateTimer = () => {
@@ -172,12 +132,10 @@
                     const diff = now - startDate;
                     setDays(Math.floor(diff / (1000 * 60 * 60 * 24)));
                 };
-                
                 updateTimer();
                 const interval = setInterval(updateTimer, 1000 * 60 * 60);
                 return () => clearInterval(interval);
             }, []);
-
             return (
                 <div className="relative group animate-float scale-90 md:scale-100" style={{ animationDuration: '6s' }}>
                     <svg width="180" height="160" viewBox="0 0 100 100" className="drop-shadow-[0_0_15px_rgba(251,113,133,0.6)] md:w-[200px] md:h-[180px]">
@@ -188,20 +146,10 @@
                         </linearGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-                            <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
+                            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
                         </filter>
                         </defs>
-                        <path 
-                        d="M50,88.9C25.5,74.6,5,55,5,34.5C5,18.4,17.2,5,32.5,5c8.6,0,16.2,4.4,20.8,11.2C56,10.6,63.1,5.5,71.2,5.5c13.7,0,24.3,11.3,24.3,26.5 c0,20.3-19.4,40.6-45.5,56.9" 
-                        fill="url(#heartGradient)" 
-                        stroke="white" 
-                        strokeWidth="1.5"
-                        filter="url(#glow)"
-                        className="opacity-90"
-                        />
+                        <path d="M50,88.9C25.5,74.6,5,55,5,34.5C5,18.4,17.2,5,32.5,5c8.6,0,16.2,4.4,20.8,11.2C56,10.6,63.1,5.5,71.2,5.5c13.7,0,24.3,11.3,24.3,26.5 c0,20.3-19.4,40.6-45.5,56.9" fill="url(#heartGradient)" stroke="white" strokeWidth="1.5" filter="url(#glow)" className="opacity-90"/>
                         <path d="M20,30 Q35,15 50,25" fill="none" stroke="white" strokeWidth="2" strokeOpacity="0.4" strokeLinecap="round" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white pt-2" style={fonts.hand}>
@@ -212,7 +160,6 @@
             );
         };
 
-        // --- Avatares ---
         const MiniJellyfish = ({ className }) => (
             <svg viewBox="0 0 100 100" className={`w-12 h-12 md:w-16 md:h-16 text-white drop-shadow-lg ${className}`}>
                 <path d="M20,45 C20,15 80,15 80,45 C80,60 70,65 50,65 C30,65 20,60 20,45 Z" fill="currentColor" opacity="0.9" />
@@ -265,7 +212,6 @@
             </svg>
         );
 
-        // --- Avatares Principais ---
         const Avatar = ({ type, name, size = "w-24 h-24 md:w-36 md:h-36" }) => {
             return (
                 <div className="flex flex-col items-center group cursor-pointer hover:scale-105 transition-transform duration-500 relative z-20">
@@ -316,26 +262,13 @@
                     const isSparkle = i % 3 === 0;
                     return (
                     <div key={i} className={`absolute animate-float opacity-40 ${isSparkle ? 'text-yellow-200' : 'bg-white/20 rounded-full'}`}
-                            style={{
-                                width: isSparkle ? 'auto' : size + 'px',
-                                height: isSparkle ? 'auto' : size + 'px',
-                                left: Math.random() * 100 + '%',
-                                bottom: -50,
-                                animationDuration: Math.random() * 15 + 10 + 's',
-                                animationDelay: Math.random() * 5 + 's'
-                            }}>
+                            style={{ width: isSparkle ? 'auto' : size + 'px', height: isSparkle ? 'auto' : size + 'px', left: Math.random() * 100 + '%', bottom: -50, animationDuration: Math.random() * 15 + 10 + 's', animationDelay: Math.random() * 5 + 's' }}>
                         {isSparkle && <Sparkles size={size} />}
                     </div>
                     )
                 })}
                 {[...Array(5)].map((_, i) => (
-                    <div key={`fish-${i}`} className="absolute animate-swim opacity-30 text-blue-200"
-                        style={{
-                            top: Math.random() * 60 + 20 + '%',
-                            left: -50,
-                            animationDuration: Math.random() * 20 + 15 + 's',
-                            animationDelay: Math.random() * 10 + 's'
-                        }}>
+                    <div key={`fish-${i}`} className="absolute animate-swim opacity-30 text-blue-200" style={{ top: Math.random() * 60 + 20 + '%', left: -50, animationDuration: Math.random() * 20 + 15 + 's', animationDelay: Math.random() * 10 + 's' }}>
                         <Fish size={Math.random() * 30 + 20} />
                     </div>
                 ))}
@@ -344,7 +277,6 @@
             </div>
         );
 
-        // --- Cards & Components ---
         const CardRenderer = ({ item, onEdit, onDelete }) => {
             const actions = (
                 <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
@@ -352,7 +284,6 @@
                 <button onClick={() => onDelete(item.id)} className="p-1.5 bg-white rounded-full shadow hover:text-red-500"><Trash2 size={12} /></button>
                 </div>
             );
-            
             if (item.type === 'letter') {
                 return (
                     <div className="bg-[#fffdf0] p-6 shadow-md relative max-w-sm mx-auto group hover:-translate-y-2 transition-transform duration-300 w-full">
@@ -371,7 +302,6 @@
                     </div>
                 )
             }
-            
             if (item.type === 'postit') {
                 return (
                     <div className="aspect-square p-6 shadow-lg relative group hover:scale-110 transition-transform duration-300 max-w-[280px] w-full mx-auto flex flex-col justify-center items-center text-center" style={{ backgroundColor: item.color || '#fef3c7' }}>
@@ -384,8 +314,6 @@
                     </div>
                 )
             }
-
-            // Polaroid Default
             return (
                 <div className="bg-white p-3 pb-8 shadow-xl rotate-1 hover:rotate-0 transition-all duration-300 transform hover:scale-105 relative group max-w-sm mx-auto w-full">
                     <div className="aspect-square bg-slate-100 mb-4 overflow-hidden border border-slate-200">
@@ -410,16 +338,7 @@
             }, [editingItem, isOpen]);
 
             if (!isOpen) return null;
-            
-            const handleImageUpload = (e) => { 
-                const file = e.target.files[0]; 
-                if (file) { 
-                    // Usar compressão
-                    compressImage(file).then(base64 => {
-                        setFormData(prev => ({ ...prev, image: base64 }));
-                    });
-                } 
-            };
+            const handleImageUpload = (e) => { const file = e.target.files[0]; if (file) { compressImage(file).then(base64 => { setFormData(prev => ({ ...prev, image: base64 })); }); } };
             const colors = ['#fef3c7', '#dcfce7', '#dbeafe', '#fce7f3', '#e0e7ff'];
 
             return (
@@ -455,189 +374,70 @@
             );
         };
 
-        // --- Modal do Álbum Mensal ---
         const AlbumModal = ({ isOpen, onClose, year, month, memories, onAddPhoto, onDeletePhoto }) => {
             if (!isOpen) return null;
-
             const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            
-            const albumMemories = memories.filter(m => {
-                if (!m.date) return false;
-                const d = new Date(m.date);
-                return d.getFullYear() === year && d.getMonth() === month && m.category === 'present';
-            });
-
-            const handleFileUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    compressImage(file).then(base64 => {
-                        const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-02`;
-                        onAddPhoto({
-                            title: `Memória de ${monthNames[month]}`,
-                            date: formattedDate,
-                            image: base64,
-                            description: '',
-                            category: 'present',
-                            type: 'photo',
-                            sticker: '📸'
-                        });
-                    });
-                }
-            };
-
+            const albumMemories = memories.filter(m => { if (!m.date) return false; const d = new Date(m.date); return d.getFullYear() === year && d.getMonth() === month && m.category === 'present'; });
+            const handleFileUpload = (e) => { const file = e.target.files[0]; if (file) { compressImage(file).then(base64 => { const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-02`; onAddPhoto({ title: `Memória de ${monthNames[month]}`, date: formattedDate, image: base64, description: '', category: 'present', type: 'photo', sticker: '📸' }); }); } };
             return (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-fade-in">
                     <div className="bg-white/90 w-full max-w-4xl h-[90vh] md:h-[80vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 z-50 bg-white rounded-full p-2 hover:bg-red-50 text-red-400 shadow">
-                            <X size={24} />
-                        </button>
-
-                        <div className="bg-orange-50 p-6 border-b border-orange-100 flex items-center gap-4 shrink-0">
-                            <div className="bg-white p-3 rounded-full shadow-sm text-orange-400">
-                                <Calendar size={32} />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl md:text-3xl font-bold text-orange-900" style={fonts.romantic}>Álbum de {monthNames[month]} {year}</h2>
-                                <p className="text-orange-600/60 text-xs md:text-sm" style={fonts.hand}>Nossas memórias deste mês</p>
-                            </div>
-                        </div>
-
+                        <button onClick={onClose} className="absolute top-4 right-4 z-50 bg-white rounded-full p-2 hover:bg-red-50 text-red-400 shadow"><X size={24} /></button>
+                        <div className="bg-orange-50 p-6 border-b border-orange-100 flex items-center gap-4 shrink-0"><div className="bg-white p-3 rounded-full shadow-sm text-orange-400"><Calendar size={32} /></div><div><h2 className="text-2xl md:text-3xl font-bold text-orange-900" style={fonts.romantic}>Álbum de {monthNames[month]} {year}</h2><p className="text-orange-600/60 text-xs md:text-sm" style={fonts.hand}>Nossas memórias deste mês</p></div></div>
                         <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                            {albumMemories.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 rounded-2xl m-4 p-4 text-center">
-                                    <ImageIcon size={64} className="mb-4 opacity-50" />
-                                    <p style={fonts.hand} className="text-xl">Este álbum ainda está vazio...</p>
-                                    <label className="mt-4 bg-orange-400 text-white px-6 py-2 rounded-full cursor-pointer hover:bg-orange-500 transition-colors flex items-center gap-2 text-sm md:text-base">
-                                        <PlusCircle size={20} /> Adicionar primeira foto
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                                    </label>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                                    <label className="aspect-square bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors group">
-                                        <div className="bg-white p-3 md:p-4 rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                                            <PlusCircle size={24} className="text-orange-400 md:w-8 md:h-8" />
-                                        </div>
-                                        <span className="mt-2 text-slate-500 font-bold text-xs md:text-sm">Adicionar Foto</span>
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                                    </label>
-
-                                    {albumMemories.map(item => (
-                                        <div key={item.id} className="relative group bg-white p-2 pb-6 md:pb-8 shadow-lg rotate-1 hover:rotate-0 transition-transform">
-                                            <div className="aspect-square overflow-hidden bg-gray-100">
-                                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                                            </div>
-                                            <button 
-                                                onClick={() => onDeletePhoto(item.id)}
-                                                className="absolute top-2 right-2 bg-white/80 p-1.5 rounded-full text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                            <div className="absolute bottom-1 md:bottom-2 left-0 right-0 text-center font-bold text-slate-700 text-xs md:text-sm" style={fonts.hand}>
-                                                {item.date}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            {albumMemories.length === 0 ? (<div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 rounded-2xl m-4 p-4 text-center"><ImageIcon size={64} className="mb-4 opacity-50" /><p style={fonts.hand} className="text-xl">Este álbum ainda está vazio...</p><label className="mt-4 bg-orange-400 text-white px-6 py-2 rounded-full cursor-pointer hover:bg-orange-500 transition-colors flex items-center gap-2 text-sm md:text-base"><PlusCircle size={20} /> Adicionar primeira foto<input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label></div>) : (<div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"><label className="aspect-square bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors group"><div className="bg-white p-3 md:p-4 rounded-full shadow-sm group-hover:scale-110 transition-transform"><PlusCircle size={24} className="text-orange-400 md:w-8 md:h-8" /></div><span className="mt-2 text-slate-500 font-bold text-xs md:text-sm">Adicionar Foto</span><input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} /></label>{albumMemories.map(item => (<div key={item.id} className="relative group bg-white p-2 pb-6 md:pb-8 shadow-lg rotate-1 hover:rotate-0 transition-transform"><div className="aspect-square overflow-hidden bg-gray-100"><img src={item.image} alt={item.title} className="w-full h-full object-cover" /></div><button onClick={() => onDeletePhoto(item.id)} className="absolute top-2 right-2 bg-white/80 p-1.5 rounded-full text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50"><Trash2 size={16} /></button><div className="absolute bottom-1 md:bottom-2 left-0 right-0 text-center font-bold text-slate-700 text-xs md:text-sm" style={fonts.hand}>{item.date}</div></div>))}</div>)}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- Timeline Dinâmica Componente ---
         const TimelineSection = ({ memories, onAddPhoto, onDeletePhoto }) => {
             const scrollRef = useRef(null);
             const [isDragging, setIsDragging] = useState(false);
             const [startX, setStartX] = useState(0);
             const [scrollLeft, setScrollLeft] = useState(0);
             const [selectedAlbum, setSelectedAlbum] = useState(null);
-
             const startYear = 2023;
             const currentYear = new Date().getFullYear();
             const currentMonth = new Date().getMonth();
-            
             const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
             const timelineData = [];
             for (let y = startYear; y <= currentYear; y++) {
                 let monthsInYear = [];
                 const maxMonth = (y === currentYear) ? currentMonth : 11;
-
                 for (let m = 0; m <= 11; m++) {
                     if (m > maxMonth) continue;
                     if (y === 2023 && m < 7) continue;
                     if (y === 2025 && m >= 3 && m <= 7) continue;
-
                     monthsInYear.push({ year: y, monthIndex: m, name: monthNames[m] });
                 }
-                
                 if (monthsInYear.length > 0) {
                     timelineData.push({ year: y, months: monthsInYear });
                 }
             }
-
-            const handleMouseDown = (e) => {
-                setIsDragging(true);
-                setStartX(e.pageX - scrollRef.current.offsetLeft);
-                setScrollLeft(scrollRef.current.scrollLeft);
-            };
+            const handleMouseDown = (e) => { setIsDragging(true); setStartX(e.pageX - scrollRef.current.offsetLeft); setScrollLeft(scrollRef.current.scrollLeft); };
             const handleMouseLeave = () => setIsDragging(false);
             const handleMouseUp = () => setIsDragging(false);
-            const handleMouseMove = (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const x = e.pageX - scrollRef.current.offsetLeft;
-                const walk = (x - startX) * 2;
-                scrollRef.current.scrollLeft = scrollLeft - walk;
-            };
-
-            const handleTouchStart = (e) => {
-                setIsDragging(true);
-                setStartX(e.touches[0].pageX - scrollRef.current.offsetLeft);
-                setScrollLeft(scrollRef.current.scrollLeft);
-            };
+            const handleMouseMove = (e) => { if (!isDragging) return; e.preventDefault(); const x = e.pageX - scrollRef.current.offsetLeft; const walk = (x - startX) * 2; scrollRef.current.scrollLeft = scrollLeft - walk; };
+            const handleTouchStart = (e) => { setIsDragging(true); setStartX(e.touches[0].pageX - scrollRef.current.offsetLeft); setScrollLeft(scrollRef.current.scrollLeft); };
             const handleTouchEnd = () => setIsDragging(false);
-            const handleTouchMove = (e) => {
-                if (!isDragging) return;
-                const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
-                const walk = (x - startX) * 2;
-                scrollRef.current.scrollLeft = scrollLeft - walk;
-            };
+            const handleTouchMove = (e) => { if (!isDragging) return; const x = e.touches[0].pageX - scrollRef.current.offsetLeft; const walk = (x - startX) * 2; scrollRef.current.scrollLeft = scrollLeft - walk; };
 
             return (
                 <div className="relative w-full py-10 z-20">
-                    <div 
-                        ref={scrollRef}
-                        className="overflow-x-hidden cursor-grab active:cursor-grabbing px-4 md:px-10 py-10 select-none no-scrollbar touch-pan-x"
-                        onMouseDown={handleMouseDown}
-                        onMouseLeave={handleMouseLeave}
-                        onMouseUp={handleMouseUp}
-                        onMouseMove={handleMouseMove}
-                        onTouchStart={handleTouchStart}
-                        onTouchEnd={handleTouchEnd}
-                        onTouchMove={handleTouchMove}
-                    >
+                    <div ref={scrollRef} className="overflow-x-hidden cursor-grab active:cursor-grabbing px-4 md:px-10 py-10 select-none no-scrollbar touch-pan-x" onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} onTouchMove={handleTouchMove}>
                         <div className="flex gap-10 md:gap-20 w-max items-start pt-10">
                             {timelineData.map((yearGroup) => (
                                 <div key={yearGroup.year} className="relative flex flex-col items-center">
-                                    <div className="text-4xl md:text-6xl font-bold text-orange-200 mb-8 drop-shadow-md" style={fonts.romantic}>
-                                        {yearGroup.year}
-                                    </div>
+                                    <div className="text-4xl md:text-6xl font-bold text-orange-200 mb-8 drop-shadow-md" style={fonts.romantic}>{yearGroup.year}</div>
                                     <div className="absolute top-10 md:top-16 left-0 right-0 h-1 bg-orange-200/50 rounded-full" />
                                     <div className="flex gap-4 md:gap-8 mt-4">
                                         {yearGroup.months.map((m) => (
                                             <div key={`${m.year}-${m.monthIndex}`} className="relative group">
                                                 <div className="w-3 h-3 md:w-4 md:h-4 bg-orange-400 rounded-full absolute -top-[20px] md:-top-[22px] left-1/2 -translate-x-1/2 border-2 border-white z-10"></div>
-                                                <div 
-                                                    onClick={() => setSelectedAlbum({ year: m.year, month: m.monthIndex })}
-                                                    className="w-24 h-32 md:w-32 md:h-40 bg-white rounded-xl shadow-lg border-b-4 border-orange-200 flex flex-col items-center justify-center p-2 cursor-pointer transform transition-all hover:-translate-y-4 hover:shadow-xl hover:rotate-2 relative overflow-hidden"
-                                                >
-                                                    <div className="absolute top-0 w-full h-2 bg-orange-300"></div>
-                                                    <span className="text-xl md:text-2xl mb-1 md:mb-2">📂</span>
-                                                    <span className="font-bold text-slate-700 text-sm md:text-lg" style={fonts.hand}>{m.name}</span>
-                                                    <span className="text-[10px] md:text-xs text-slate-400 mt-1">Ver Álbum</span>
+                                                <div onClick={() => setSelectedAlbum({ year: m.year, month: m.monthIndex })} className="w-24 h-32 md:w-32 md:h-40 bg-white rounded-xl shadow-lg border-b-4 border-orange-200 flex flex-col items-center justify-center p-2 cursor-pointer transform transition-all hover:-translate-y-4 hover:shadow-xl hover:rotate-2 relative overflow-hidden">
+                                                    <div className="absolute top-0 w-full h-2 bg-orange-300"></div><span className="text-xl md:text-2xl mb-1 md:mb-2">📂</span><span className="font-bold text-slate-700 text-sm md:text-lg" style={fonts.hand}>{m.name}</span><span className="text-[10px] md:text-xs text-slate-400 mt-1">Ver Álbum</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -647,23 +447,12 @@
                             <div className="w-10 md:w-20"></div>
                         </div>
                     </div>
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-orange-400/50 text-xs md:text-sm animate-pulse pointer-events-none flex items-center gap-2 whitespace-nowrap">
-                        <ChevronLeft size={16}/> Arraste para navegar <ChevronRight size={16}/>
-                    </div>
-                    <AlbumModal 
-                        isOpen={!!selectedAlbum}
-                        onClose={() => setSelectedAlbum(null)}
-                        year={selectedAlbum?.year}
-                        month={selectedAlbum?.month}
-                        memories={memories}
-                        onAddPhoto={onAddPhoto}
-                        onDeletePhoto={onDeletePhoto}
-                    />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-orange-400/50 text-xs md:text-sm animate-pulse pointer-events-none flex items-center gap-2 whitespace-nowrap"><ChevronLeft size={16}/> Arraste para navegar <ChevronRight size={16}/></div>
+                    <AlbumModal isOpen={!!selectedAlbum} onClose={() => setSelectedAlbum(null)} year={selectedAlbum?.year} month={selectedAlbum?.month} memories={memories} onAddPhoto={onAddPhoto} onDeletePhoto={onDeletePhoto} />
                 </div>
             );
         };
 
-        // --- App Principal ---
         const MuseumApp = () => {
             const [memories, setMemories] = useState([]);
             const [isModalOpen, setIsModalOpen] = useState(false);
@@ -671,176 +460,45 @@
             const [user, setUser] = useState(null);
             const [isSaving, setIsSaving] = useState(false);
 
-            // 1. Autenticação Firebase Anônima
-            useEffect(() => {
-                const initAuth = async () => {
-                    // Tenta usar o token do ambiente se disponível (para preview no Canvas)
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        // Fallback para auth anônimo (funciona se ativado no console)
-                        await signInAnonymously(auth);
-                    }
-                };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setUser);
-                return () => unsubscribe();
-            }, []);
+            useEffect(() => { const initAuth = async () => { await signInAnonymously(auth); }; initAuth(); const unsubscribe = onAuthStateChanged(auth, setUser); return () => unsubscribe(); }, []);
 
-            // 2. Carregar Memórias do Firestore
             useEffect(() => {
                 if (!user) return;
-
-                // Define a coleção correta baseada no ambiente
-                // Se estiver no Canvas, usa o caminho isolado. Se estiver no seu GitHub, usa 'memories'.
-                let memoriesRef;
-                if (typeof __app_id !== 'undefined') {
-                     memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
-                } else {
-                     // Caminho de produção para o seu projeto pessoal
-                     memoriesRef = collection(db, 'memories');
-                }
-                
-                // onSnapshot para tempo real
+                const memoriesRef = collection(db, 'memories');
                 const unsubscribe = onSnapshot(memoriesRef, (snapshot) => {
                     const loadedMemories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
-                    if (loadedMemories.length === 0) {
-                        // Dados iniciais se vazio
-                        setMemories([{ id: 'init', type: 'letter', title: 'A Criação do Museu', date: '2023-08-02', description: "Oii meu bemm!!, criei este little museu só nosso para guardarmos cada momento incrível da nossa vida juntos. Aqui, cada dia 02 será eterno, e cada sorriso nosso ficará registrado para sempre", category: 'past', sticker: '💌', author: 'Peleco' }]);
-                    } else {
-                        setMemories(loadedMemories);
-                    }
+                    if (loadedMemories.length === 0) { setMemories([{ id: 'init', type: 'letter', title: 'A Criação do Museu', date: '2023-08-02', description: "Oii meu bemm!!, criei este little museu só nosso para guardarmos cada momento incrível da nossa vida juntos. Aqui, cada dia 02 será eterno, e cada sorriso nosso ficará registrado para sempre", category: 'past', sticker: '💌', author: 'Peleco' }]); } else { setMemories(loadedMemories); }
                 });
-
                 return () => unsubscribe();
             }, [user]);
 
-            // Salvar (Add ou Update)
             const handleSave = async (data) => {
                 if (!user) return;
                 setIsSaving(true);
                 try {
-                    let memoriesRef;
-                    if (typeof __app_id !== 'undefined') {
-                        memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
-                    } else {
-                        memoriesRef = collection(db, 'memories');
-                    }
-                    
-                    if (editingItem && editingItem.id !== 'init') {
-                        // Update
-                        await updateDoc(doc(memoriesRef, editingItem.id), data);
-                    } else {
-                        // Create
-                        await addDoc(memoriesRef, data);
-                    }
-                    setIsModalOpen(false);
-                    setEditingItem(null);
-                } catch (error) {
-                    console.error("Erro ao salvar:", error);
-                    alert("Erro ao salvar. Verifique se a autenticação Anônima está ativada no Firebase.");
-                } finally {
-                    setIsSaving(false);
-                }
+                    const memoriesRef = collection(db, 'memories');
+                    if (editingItem && editingItem.id !== 'init') { await updateDoc(doc(memoriesRef, editingItem.id), data); } else { await addDoc(memoriesRef, data); }
+                    setIsModalOpen(false); setEditingItem(null);
+                } catch (error) { console.error("Erro ao salvar:", error); alert("Erro ao salvar: " + error.message); } finally { setIsSaving(false); }
             };
 
-            const handleAddFromAlbum = async (newMemory) => {
-                if (!user) return;
-                try {
-                    let memoriesRef;
-                    if (typeof __app_id !== 'undefined') {
-                        memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
-                    } else {
-                        memoriesRef = collection(db, 'memories');
-                    }
-                    await addDoc(memoriesRef, newMemory);
-                } catch (e) {
-                    console.error("Erro upload album", e);
-                    alert("Erro ao salvar foto.");
-                }
-            };
-
-            const handleDelete = async (id) => {
-                if (!user) return;
-                if (window.confirm("Remover esta lembrança?")) {
-                    if (id === 'init') return; 
-                    try {
-                        let memoriesRef;
-                        if (typeof __app_id !== 'undefined') {
-                            memoriesRef = collection(db, 'artifacts', appId, 'public', 'data', 'memories');
-                        } else {
-                            memoriesRef = collection(db, 'memories');
-                        }
-                        await deleteDoc(doc(memoriesRef, id));
-                    } catch (e) {
-                        console.error("Erro ao deletar", e);
-                    }
-                }
-            };
-            
+            const handleAddFromAlbum = async (newMemory) => { if (!user) return; try { const memoriesRef = collection(db, 'memories'); await addDoc(memoriesRef, newMemory); } catch (e) { console.error("Erro upload album", e); alert("Erro ao salvar foto: " + e.message); } };
+            const handleDelete = async (id) => { if (!user) return; if (window.confirm("Remover esta lembrança?")) { if (id === 'init') return; try { const memoriesRef = collection(db, 'memories'); await deleteDoc(doc(memoriesRef, id)); } catch (e) { console.error("Erro ao deletar", e); } } };
             const past = memories.filter(m => m.category === 'past');
             const future = memories.filter(m => m.category === 'future');
-
-            const handleDiveClick = () => {
-                const startSection = document.getElementById('start-section');
-                if (startSection) {
-                    startSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            };
+            const handleDiveClick = () => { const startSection = document.getElementById('start-section'); if (startSection) { startSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
 
             return (
                 <div className="min-h-screen text-slate-800 font-sans selection:bg-rose-200 overflow-x-hidden">
-                    <button 
-                        onClick={() => { setEditingItem(null); setIsModalOpen(true); }}
-                        className="fixed bottom-6 right-6 bg-rose-300 text-rose-800 p-3 md:p-4 rounded-full shadow-2xl hover:bg-rose-400 transition-all hover:scale-110 z-50 border-4 border-white group"
-                        title="Adicionar nova memória"
-                    >
-                        <CustomPawPrint className="group-hover:rotate-12 transition-transform w-6 h-6 md:w-8 md:h-8" size={32} />
-                    </button>
-
+                    <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="fixed bottom-6 right-6 bg-rose-300 text-rose-800 p-3 md:p-4 rounded-full shadow-2xl hover:bg-rose-400 transition-all hover:scale-110 z-50 border-4 border-white group" title="Adicionar nova memória"><CustomPawPrint className="group-hover:rotate-12 transition-transform w-6 h-6 md:w-8 md:h-8" size={32} /></button>
                     <section className="relative min-h-screen bg-gradient-to-b from-[#0f172a] via-[#1e293b] to-[#38bdf8] text-white flex flex-col items-center justify-center overflow-hidden pb-40 px-4">
                         <BackgroundElements />
-                        <div className="z-10 text-center space-y-6 animate-fade-in-up relative w-full max-w-4xl">
-                            <div className="flex justify-center"><LoveTimer /></div>
-                            <h1 className="text-5xl md:text-8xl font-bold drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-white to-blue-200 leading-tight" style={fonts.romantic}>Museo D'Amore</h1>
-                            <p className="text-xl md:text-2xl text-blue-100 tracking-[0.1em] font-bold" style={fonts.hand}>Peleco e Melequinha - 02.08.2023</p>
-                            <div className="flex justify-center items-center gap-6 md:gap-20 pt-8 relative">
-                                <div className="absolute inset-0 bg-white/10 blur-3xl rounded-full transform scale-150 z-0"></div>
-                                <Avatar type="jellyfish" name="Lara Isabely" />
-                                <Heart size={32} className="text-rose-400 animate-pulse fill-rose-400/50 drop-shadow-lg z-20 md:w-12 md:h-12" />
-                                <Avatar type="fox" name="Andrey Endreo" />
-                            </div>
-                            <div className="mx-auto mt-8 md:mt-10 bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20 shadow-lg relative z-20 max-w-2xl">
-                                <p className="text-base md:text-lg text-blue-50 leading-relaxed" style={fonts.hand}>
-                                    "Este museu foi criado para que nós guardássemos cada momento juntos e registrasse todos os encontros que irão acontecer no dia 02 de todos os meses. Nosso universo particular."
-                                </p>
-                            </div>
-                            <div className="mt-8 md:mt-12">
-                                <button onClick={handleDiveClick} className="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-8 rounded-full border-2 border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-all hover:scale-105 animate-bounce-slow flex items-center gap-2 mx-auto text-sm md:text-base" style={fonts.hand}>
-                                    <Anchor size={20} /> Mergulhar na nossa história
-                                </button>
-                            </div>
-                        </div>
-                        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20">
-                            <svg className="relative block w-[calc(100%+1.3px)] h-[100px] md:h-[150px]" preserveAspectRatio="none" viewBox="0 0 1200 120">
-                                <defs><linearGradient id="heroToBlue" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style={{stopColor: '#38bdf8', stopOpacity: 0}} /><stop offset="100%" style={{stopColor: '#e0f2fe', stopOpacity: 1}} /></linearGradient></defs>
-                                <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="url(#heroToBlue)" opacity="0.3"></path>
-                                <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" fill="url(#heroToBlue)"></path>
-                            </svg>
-                            <div className="absolute bottom-5 md:bottom-10 left-1/2 -translate-x-1/2 animate-bounce-slow"><MiniJellyfish className="text-blue-300 drop-shadow-md opacity-80" /></div>
-                        </div>
+                        <div className="z-10 text-center space-y-6 animate-fade-in-up relative w-full max-w-4xl"><div className="flex justify-center"><LoveTimer /></div><h1 className="text-5xl md:text-8xl font-bold drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-white to-blue-200 leading-tight" style={fonts.romantic}>Museo D'Amore</h1><p className="text-xl md:text-2xl text-blue-100 tracking-[0.1em] font-bold" style={fonts.hand}>Peleco e Melequinha - 02.08.2023</p><div className="flex justify-center items-center gap-6 md:gap-20 pt-8 relative"><div className="absolute inset-0 bg-white/10 blur-3xl rounded-full transform scale-150 z-0"></div><Avatar type="jellyfish" name="Lara Isabely" /><Heart size={32} className="text-rose-400 animate-pulse fill-rose-400/50 drop-shadow-lg z-20 md:w-12 md:h-12" /><Avatar type="fox" name="Andrey Endreo" /></div><div className="mx-auto mt-8 md:mt-10 bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20 shadow-lg relative z-20 max-w-2xl"><p className="text-base md:text-lg text-blue-50 leading-relaxed" style={fonts.hand}>"Este museu foi criado para que nós guardássemos cada momento juntos e registrasse todos os encontros que irão acontecer no dia 02 de todos os meses. Nosso universo particular."</p></div><div className="mt-8 md:mt-12"><button onClick={handleDiveClick} className="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-8 rounded-full border-2 border-white/50 shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-all hover:scale-105 animate-bounce-slow flex items-center gap-2 mx-auto text-sm md:text-base" style={fonts.hand}><Anchor size={20} /> Mergulhar na nossa história</button></div></div>
+                        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20"><svg className="relative block w-[calc(100%+1.3px)] h-[100px] md:h-[150px]" preserveAspectRatio="none" viewBox="0 0 1200 120"><defs><linearGradient id="heroToBlue" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style={{stopColor: '#38bdf8', stopOpacity: 0}} /><stop offset="100%" style={{stopColor: '#e0f2fe', stopOpacity: 1}} /></linearGradient></defs><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="url(#heroToBlue)" opacity="0.3"></path><path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" fill="url(#heroToBlue)"></path></svg><div className="absolute bottom-5 md:bottom-10 left-1/2 -translate-x-1/2 animate-bounce-slow"><MiniJellyfish className="text-blue-300 drop-shadow-md opacity-80" /></div></div>
                     </section>
 
                     <section id="start-section" className="bg-[#e0f2fe] min-h-screen py-16 md:py-24 relative z-10 overflow-hidden">
-                        <div className="absolute inset-0 pointer-events-none">
-                            <div className="absolute top-20 left-10 text-sky-300/50 animate-swim"><Fish size={32} /></div>
-                            <div className="absolute top-40 right-20 text-sky-400/40 animate-swim" style={{animationDuration: '25s', animationDelay: '2s'}}><Fish size={24} /></div>
-                            <div className="absolute bottom-0 left-5 md:left-20 animate-peek-up" style={{animationDuration: '8s', animationDelay: '1s'}}><CuteCrab className="w-12 h-8 md:w-16 md:h-10" /></div>
-                            <div className="absolute top-1/4 -right-20 animate-swim-across" style={{animationDuration: '30s'}}><CuteTurtle className="w-16 h-12 md:w-24 md:h-16 text-green-500/60" /></div>
-                            <div className="absolute bottom-32 right-10 animate-pulse" style={{animationDuration: '3s'}}><CuteStarfish className="w-8 h-8 md:w-12 md:h-12 text-yellow-400/80 rotate-12" /></div>
-                            <div className="absolute bottom-1/3 left-1/4 bg-white/30 w-64 h-64 md:w-96 md:h-96 rounded-full blur-3xl mix-blend-overlay animate-pulse"></div>
-                        </div>
+                        <div className="absolute inset-0 pointer-events-none"><div className="absolute top-20 left-10 text-sky-300/50 animate-swim"><Fish size={32} /></div><div className="absolute top-40 right-20 text-sky-400/40 animate-swim" style={{animationDuration: '25s', animationDelay: '2s'}}><Fish size={24} /></div><div className="absolute bottom-0 left-5 md:left-20 animate-peek-up" style={{animationDuration: '8s', animationDelay: '1s'}}><CuteCrab className="w-12 h-8 md:w-16 md:h-10" /></div><div className="absolute top-1/4 -right-20 animate-swim-across" style={{animationDuration: '30s'}}><CuteTurtle className="w-16 h-12 md:w-24 md:h-16 text-green-500/60" /></div><div className="absolute bottom-32 right-10 animate-pulse" style={{animationDuration: '3s'}}><CuteStarfish className="w-8 h-8 md:w-12 md:h-12 text-yellow-400/80 rotate-12" /></div><div className="absolute bottom-1/3 left-1/4 bg-white/30 w-64 h-64 md:w-96 md:h-96 rounded-full blur-3xl mix-blend-overlay animate-pulse"></div></div>
                         <div className="container mx-auto px-4 max-w-5xl relative z-10">
                             <div className="flex flex-col items-center justify-center mb-16 md:mb-24 relative group">
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[150%] bg-gradient-to-r from-transparent via-white/50 to-transparent blur-2xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
@@ -850,54 +508,31 @@
                                     <p className="text-sky-800/90 text-base md:text-lg italic leading-relaxed max-w-lg mx-auto" style={fonts.hand}>"O caminho do nosso amor conecta todas as coisas. Antes de tudo existir e para além da eternidade. Em cada detalhe... Eu vejo você."</p>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                                {past.map(item => (<CardRenderer key={item.id} item={item} onEdit={setEditingItem} onDelete={handleDelete} />))}
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">{past.map(item => (<CardRenderer key={item.id} item={item} onEdit={setEditingItem} onDelete={handleDelete} />))}</div>
                         </div>
-                        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none transform translate-y-1 z-0">
-                            <svg className="relative block w-[calc(100%+1.3px)] h-[100px] md:h-[150px]" preserveAspectRatio="none" viewBox="0 0 1200 120">
-                                <defs><linearGradient id="blueToOrange" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style={{stopColor: '#e0f2fe', stopOpacity: 1}} /><stop offset="100%" style={{stopColor: '#fff7ed', stopOpacity: 1}} /></linearGradient></defs>
-                                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="url(#blueToOrange)"></path>
-                            </svg>
-                            <div className="absolute bottom-10 md:bottom-16 left-1/2 -translate-x-1/2 animate-bounce-slow" style={{animationDelay: '1s'}}><MiniJellyfish className="text-orange-200 drop-shadow-md opacity-80" /></div>
-                        </div>
+                        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none transform translate-y-1 z-0"><svg className="relative block w-[calc(100%+1.3px)] h-[100px] md:h-[150px]" preserveAspectRatio="none" viewBox="0 0 1200 120"><defs><linearGradient id="blueToOrange" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style={{stopColor: '#e0f2fe', stopOpacity: 1}} /><stop offset="100%" style={{stopColor: '#fff7ed', stopOpacity: 1}} /></linearGradient></defs><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="url(#blueToOrange)"></path></svg><div className="absolute bottom-10 md:bottom-16 left-1/2 -translate-x-1/2 animate-bounce-slow" style={{animationDelay: '1s'}}><MiniJellyfish className="text-orange-200 drop-shadow-md opacity-80" /></div></div>
                     </section>
 
                     <section className="bg-[#fff7ed] min-h-screen pt-16 md:pt-24 pb-40 md:pb-60 relative z-10 overflow-hidden">
                         <div className="container mx-auto px-4 max-w-6xl relative z-20">
-                            <div className="flex items-center justify-center gap-3 mb-10 md:mb-16 text-orange-900/80">
-                                <Leaf size={24} />
-                                <h2 className="text-3xl md:text-5xl font-bold" style={fonts.romantic}>Nossas Estações</h2>
-                            </div>
+                            <div className="flex items-center justify-center gap-3 mb-10 md:mb-16 text-orange-900/80"><Leaf size={24} /><h2 className="text-3xl md:text-5xl font-bold" style={fonts.romantic}>Nossas Estações</h2></div>
                             <p className="text-center max-w-2xl mx-auto mb-8 md:mb-12 text-orange-700 text-base md:text-lg" style={fonts.hand}>"Navegue pela nossa linha do tempo e reviva cada mês especial. Clique nos meses para abrir o álbum."</p>
                             <TimelineSection memories={memories} onAddPhoto={handleAddFromAlbum} onDeletePhoto={handleDelete} />
                         </div>
                         <div className="absolute bottom-0 left-0 w-full h-[150px] md:h-[200px] overflow-hidden leading-none z-0 pointer-events-none">
                             <div className="absolute inset-0 bg-gradient-to-t from-[#1e1b4b] via-[#4338ca] to-transparent opacity-90"></div>
                             {[...Array(15)].map((_, i) => (<div key={i} className="absolute bg-yellow-100 rounded-full animate-float" style={{width: Math.random()*4+1+'px', height: Math.random()*4+1+'px', bottom: Math.random()*50+'%', left: Math.random()*100+'%', opacity: Math.random(), animationDuration: Math.random()*5+5+'s', animationDelay: Math.random()*2+'s'}} />))}
-                            <svg className="absolute bottom-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 120">
-                                <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="#1e1b4b" opacity="0.2"></path>
-                                <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" fill="#1e1b4b" opacity="0.5"></path>
-                                <path d="M0,120 L0,100 Q150,150 300,100 T600,100 T900,100 T1200,80 L1200,120 Z" fill="#1e1b4b"></path>
-                            </svg>
+                            <svg className="absolute bottom-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 120"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="#1e1b4b" opacity="0.2"></path><path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" fill="#1e1b4b" opacity="0.5"></path><path d="M0,120 L0,100 Q150,150 300,100 T600,100 T900,100 T1200,80 L1200,120 Z" fill="#1e1b4b"></path></svg>
                             <div className="absolute bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 animate-bounce-slow"><MiniJellyfish className="text-indigo-200 drop-shadow-[0_0_15px_rgba(199,210,254,0.5)] opacity-90" /></div>
                         </div>
                     </section>
 
                     <section className="bg-[#1e1b4b] min-h-[80vh] py-16 md:py-24 text-white relative z-10">
                         <div className="container mx-auto px-4 max-w-5xl">
-                            <div className="flex items-center justify-center gap-3 mb-10 md:mb-16 text-indigo-200">
-                                <Moon size={24} />
-                                <h2 className="text-3xl md:text-5xl font-bold" style={fonts.romantic}>Nossos Sonhos</h2>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                                {future.length === 0 ? (<div className="text-center text-indigo-400 opacity-50 col-span-full" style={fonts.hand}>Ainda não sonhamos com o amanhã? Adicione algo!</div>) : future.map(item => (<div key={item.id} className="relative group"><CardRenderer item={item} onEdit={setEditingItem} onDelete={handleDelete} /></div>))}
-                            </div>
+                            <div className="flex items-center justify-center gap-3 mb-10 md:mb-16 text-indigo-200"><Moon size={24} /><h2 className="text-3xl md:text-5xl font-bold" style={fonts.romantic}>Nossos Sonhos</h2></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">{future.length === 0 ? (<div className="text-center text-indigo-400 opacity-50 col-span-full" style={fonts.hand}>Ainda não sonhamos com o amanhã? Adicione algo!</div>) : future.map(item => (<div key={item.id} className="relative group"><CardRenderer item={item} onEdit={setEditingItem} onDelete={handleDelete} /></div>))}</div>
                         </div>
-                        <footer className="mt-20 md:mt-32 text-center text-indigo-400 pb-8 px-4" style={fonts.hand}>
-                            <p>Feito com ❤️ para Lara Isabely</p>
-                            <p className="text-xs mt-2 opacity-50">Até o próximo dia 02 meu bem!.</p>
-                        </footer>
+                        <footer className="mt-20 md:mt-32 text-center text-indigo-400 pb-8 px-4" style={fonts.hand}><p>Feito com ❤️ para Lara Isabely</p><p className="text-xs mt-2 opacity-50">Sempre será dia 02.</p></footer>
                     </section>
 
                     <MemoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} editingItem={editingItem} isSaving={isSaving} />
